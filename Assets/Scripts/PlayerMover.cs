@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 namespace Sommelier.Player
@@ -17,6 +17,9 @@ namespace Sommelier.Player
         bool isMoving;
         Coroutine moveCo;
 
+        // ✅ Add this property so other scripts (MouseLook) can read the moving state
+        public bool IsMoving => isMoving;
+
         public void MoveTo(Transform target, Transform lookAt = null)
         {
             if (isMoving && moveCo != null) StopCoroutine(moveCo);
@@ -30,7 +33,6 @@ namespace Sommelier.Player
             Vector3 startPos = transform.position;
             Quaternion startRot = transform.rotation;
 
-            // Desired final yaw from target.forward; pitch is set on camera pivot if lookAt provided
             Vector3 faceDir = (lookAt ? (lookAt.position - cameraTransform.position) : target.forward);
             Vector3 flatDir = new Vector3(faceDir.x, 0f, faceDir.z).normalized;
             Quaternion endRot = flatDir.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(flatDir, Vector3.up) : target.rotation;
@@ -45,11 +47,9 @@ namespace Sommelier.Player
                 transform.position = Vector3.Lerp(startPos, target.position, k);
                 transform.rotation = Quaternion.Slerp(startRot, endRot, k);
 
-                // If we have a lookAt, gently pitch camera toward it
                 if (lookAt != null)
                 {
                     Vector3 dir = (lookAt.position - cameraTransform.position).normalized;
-                    // yaw handled by body; compute pitch only
                     Vector3 localDir = transform.InverseTransformDirection(dir);
                     float pitch = -Mathf.Atan2(localDir.y, new Vector2(localDir.x, localDir.z).magnitude) * Mathf.Rad2Deg;
                     var pivotRot = cameraPivot.localRotation;
@@ -60,7 +60,6 @@ namespace Sommelier.Player
                 yield return null;
             }
 
-            // Snap final
             transform.position = target.position;
             transform.rotation = endRot;
 
