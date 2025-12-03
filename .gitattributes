@@ -1,0 +1,30 @@
+# Normalize text files (good cross-platform diffs)
+* text=auto
+
+# --- Images / textures ---
+*.png  filter=lfs diff=lfs merge=lfs -text
+*.jpg  filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.tga  filter=lfs diff=lfs merge=lfs -text
+*.tif  filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+*.exr  filter=lfs diff=lfs merge=lfs -text
+*.psd  filter=lfs diff=lfs merge=lfs -text
+
+# --- 3D / models ---
+*.fbx  filter=lfs diff=lfs merge=lfs -text
+*.obj  filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+
+# --- Audio / video ---
+*.wav  filter=lfs diff=lfs merge=lfs -text
+*.mp3  filter=lfs diff=lfs merge=lfs -text
+*.ogg  filter=lfs diff=lfs merge=lfs -text
+*.mp4  filter=lfs diff=lfs merge=lfs -text
+*.mov  filter=lfs diff=lfs merge=lfs -text
+
+# OPTIONAL (usually keep as text for better diffs — comment out to keep text)
+# *.unity  filter=lfs diff=lfs merge=lfs -text   # Scenes (YAML)
+# *.prefab filter=lfs diff=lfs merge=lfs -text   # Prefabs (YAML)
+# *.anim   filter=lfs diff=lfs merge=lfs -text
+# *.controller filter=lfs diff=lfs merge=lfs -text
