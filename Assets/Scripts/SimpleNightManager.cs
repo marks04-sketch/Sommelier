@@ -77,7 +77,7 @@ public class SimpleNightManager : MonoBehaviour
     void WinNight()
     {
         Toast("Right glass!");
-        if (nightIndex + 1 >= totalNights) { Toast("CORRECT!"); enabled = false; return; }
+        if (nightIndex + 1 >= totalNights) { Toast("You Won!"); enabled = false; return; }
         StartNight(nightIndex + 1);
     }
 
