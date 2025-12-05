@@ -32,6 +32,8 @@ namespace Sommelier.Inputs
 
         void Update()
         {
+            if (ObjectInspector.IsInspecting) return;
+
             Vector3 mousePos;
 
             // --- read mouse position depending on input backend ---

@@ -43,6 +43,8 @@ namespace Sommelier.Player
 
         void Update()
         {
+            if (ObjectInspector.IsInspecting) return;
+
             // ESC toggles cursor if you want to get your mouse back
             if (KeyboardEscDown()) LockCursor(false);
             if (!cursorLocked && MouseLeftDown()) LockCursor(true);
