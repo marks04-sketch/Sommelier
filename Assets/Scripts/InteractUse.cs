@@ -1,6 +1,5 @@
 using UnityEngine;
 using TMPro;
-using System.Reflection;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -10,50 +9,90 @@ public class InteractUse : MonoBehaviour
 {
     [Header("Refs")]
     public Camera cam;
-    public TMP_Text promptText;          // optional: small text under crosshair
+    public TMP_Text promptText;
 
     [Header("Ray")]
-    public LayerMask interactMask;       // set to Interactable only
+    public LayerMask interactMask;   // Interactable
     public float useDistance = 3.0f;
 
-    [Header("Input")]
-    public KeyCode inspectKey = KeyCode.E; // press E to inspect
-    public KeyCode useKey = KeyCode.F;     // press F to drink
+    [Header("Keys")]
+    public KeyCode inspectKey = KeyCode.E;
+    public KeyCode useKey = KeyCode.F;
 
-    void Reset() { cam = Camera.main; }
+    [Header("Inspector")]
+    public ObjectInspector objectInspector;
+
+    void Reset()
+    {
+        cam = Camera.main;
+    }
+
+    void Awake()
+    {
+        if (!cam) cam = Camera.main;
+        if (objectInspector == null)
+            objectInspector = FindObjectOfType<ObjectInspector>(true);
+
+        // Asegura que el texto esté activo
+        if (promptText) promptText.gameObject.SetActive(true);
+    }
 
     void Update()
     {
         if (!cam) cam = Camera.main;
 
-        // If currently inspecting: don't allow hover/use prompt from here
-        if (ObjectInspector_IsInspecting())
+        if (ObjectInspector.IsInspecting)
         {
-            SetPrompt(""); 
+            SetPrompt("ESC - Exit");
             return;
         }
 
-        // Ray from the center of screen
+        // Ray al centro
         Ray r = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-        WineGlass glass = null;
 
-        if (Physics.Raycast(r, out var hit, useDistance, interactMask, QueryTriggerInteraction.Collide))
-            glass = hit.collider.GetComponentInParent<WineGlass>();
-
-        // Prompt: show both actions when looking at a bottle
-        SetPrompt(glass ? "E - Inspect | F - Drink" : "");
-
-        // INSPECT (E)
-        if (glass && InspectPressed())
+        if (!Physics.Raycast(r, out var hit, useDistance, interactMask, QueryTriggerInteraction.Collide))
         {
-            ObjectInspector_TryInspect(glass.gameObject);
-            return; // avoid also drinking in same frame
+            SetPrompt("");
+            return;
         }
 
-        // DRINK (F)
-        if (glass && UsePressed())
+        // 1) Detecta INSPECTABLE (para la E)
+        var inspectable = hit.collider.GetComponentInParent<InspectableObject>();
+
+        // 2) Detecta DRINKABLE (para la F)
+        var glass = hit.collider.GetComponentInParent<WineGlass>();
+
+        // Si no es ni inspectable ni drinkable, no mostramos nada
+        if (inspectable == null && glass == null)
         {
-            Debug.Log("Drank " + glass.name);
+            SetPrompt("");
+            return;
+        }
+
+        // Construye el prompt según lo que haya
+        if (glass != null && inspectable != null)
+            SetPrompt("E - Inspect | F - Drink");
+        else if (inspectable != null)
+            SetPrompt("E - Inspect");
+        else
+            SetPrompt("F - Drink");
+
+        // INSPECT
+        if (InspectPressed() && inspectable != null)
+        {
+            if (objectInspector == null)
+            {
+                Debug.LogWarning("InteractUse: objectInspector no asignado. Arrástralo en el Inspector.");
+                return;
+            }
+
+            objectInspector.TryInspect(inspectable.gameObject);
+            return;
+        }
+
+        // DRINK
+        if (UsePressed() && glass != null)
+        {
             glass.Drink();
         }
     }
@@ -76,87 +115,15 @@ public class InteractUse : MonoBehaviour
 #endif
     }
 
-    void SetPrompt(string s) { if (promptText) promptText.text = s; }
-
-    // --- ObjectInspector integration via reflection (no dependency on direct reference) ---
-
-    bool ObjectInspector_IsInspecting()
+    void SetPrompt(string s)
     {
-        var t = System.Type.GetType("ObjectInspector");
-        if (t == null) return false;
+        if (!promptText) return;
 
-        var p = t.GetProperty("IsInspecting",
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        // Si el texto está invisible por alpha/material, esto lo fuerza
+        promptText.gameObject.SetActive(true);
+        promptText.alpha = 1f;
 
-        if (p == null) return false;
-
-        var v = p.GetValue(null, null);
-        return v is bool b && b;
-    }
-
-    void ObjectInspector_TryInspect(GameObject target)
-    {
-        var t = System.Type.GetType("ObjectInspector");
-        if (t == null)
-        {
-            Debug.LogWarning("ObjectInspector type not found.");
-            return;
-        }
-
-        // Find an ObjectInspector component in the scene
-        var inspector = Object.FindFirstObjectByType(t);
-        if (inspector == null)
-        {
-            Debug.LogWarning("No ObjectInspector component found in scene.");
-            return;
-        }
-
-        // Try common method names (public or private)
-        string[] methodNames = {
-            "Inspect", "InspectObject", "StartInspect", "BeginInspect", "Open", "OpenInspect"
-        };
-
-        foreach (var name in methodNames)
-        {
-            var m = t.GetMethod(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (m == null) continue;
-
-            var pars = m.GetParameters();
-            try
-            {
-                if (pars.Length == 1)
-                {
-                    // Accept GameObject / Transform / Component
-                    if (pars[0].ParameterType == typeof(GameObject))
-                    {
-                        m.Invoke(inspector, new object[] { target });
-                        return;
-                    }
-                    if (pars[0].ParameterType == typeof(Transform))
-                    {
-                        m.Invoke(inspector, new object[] { target.transform });
-                        return;
-                    }
-                    if (typeof(Component).IsAssignableFrom(pars[0].ParameterType))
-                    {
-                        var comp = target.GetComponent(pars[0].ParameterType);
-                        if (comp != null)
-                        {
-                            m.Invoke(inspector, new object[] { comp });
-                            return;
-                        }
-                    }
-                }
-                else if (pars.Length == 0)
-                {
-                    // Some inspectors inspect based on their own raycast
-                    m.Invoke(inspector, null);
-                    return;
-                }
-            }
-            catch { /* try next */ }
-        }
-
-        Debug.LogWarning("Could not find a usable inspect method in ObjectInspector.");
+        promptText.text = s;
+        promptText.ForceMeshUpdate();
     }
 }

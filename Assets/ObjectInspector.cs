@@ -1,8 +1,9 @@
 using UnityEngine;
-using UnityEngine.UI; // top of file
+using UnityEngine.UI;
 
-
-
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 public class ObjectInspector : MonoBehaviour
 {
@@ -20,12 +21,17 @@ public class ObjectInspector : MonoBehaviour
     [Header("Input")]
     public KeyCode exitKey = KeyCode.Escape;
 
+    // --- AUDIO (NEW) ---
+    [Header("Audio")]
+    [SerializeField] private AudioSource sfxSource;
+    [SerializeField] private AudioClip inspectClip; // Assign: InspectingBottles
+
+    // --- STATIC FLAG (this is what ClickMover/MouseLook expect) ---
+    public static bool IsInspecting { get; private set; }
+
     Transform _inspectAnchor;
     InspectableObject _current;
     bool _isInspecting;
-    public static bool IsInspecting { get; private set; }  // <- add at top (inside class)
-
-
 
     void Start()
     {
@@ -37,6 +43,9 @@ public class ObjectInspector : MonoBehaviour
         _inspectAnchor.SetParent(playerCamera.transform);
         _inspectAnchor.localPosition = new Vector3(0f, 0f, inspectDistance);
         _inspectAnchor.localRotation = Quaternion.identity;
+
+        _isInspecting = false;
+        IsInspecting = false;
     }
 
     void Update()
@@ -54,18 +63,15 @@ public class ObjectInspector : MonoBehaviour
 
     void HandleInspectStart()
     {
-        // Press E to start inspecting whatever is under the crosshair
         bool ePressed =
 #if ENABLE_INPUT_SYSTEM
-            UnityEngine.InputSystem.Keyboard.current != null &&
-            UnityEngine.InputSystem.Keyboard.current.eKey.wasPressedThisFrame;
+            Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
 #else
-        Input.GetKeyDown(KeyCode.E);
+            Input.GetKeyDown(KeyCode.E);
 #endif
 
         if (!ePressed) return;
 
-        // Ray from the center of the screen (crosshair)
         Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         if (Physics.Raycast(ray, out RaycastHit hit, 100f, inspectLayer))
         {
@@ -77,6 +83,19 @@ public class ObjectInspector : MonoBehaviour
         }
     }
 
+    // IMPORTANT: This method name/signature is what InteractUse will call if we want.
+    public void TryInspect(GameObject go)
+    {
+        if (_isInspecting) return;
+        if (go == null) return;
+
+        var inspectable = go.GetComponentInParent<InspectableObject>();
+        if (inspectable != null)
+        {
+            StartInspect(inspectable);
+        }
+    }
+
     void StartInspect(InspectableObject obj)
     {
         _current = obj;
@@ -85,44 +104,42 @@ public class ObjectInspector : MonoBehaviour
 
         _current.transform.SetParent(_inspectAnchor);
         _isInspecting = true;
-        IsInspecting = true;                            // <- tell others
+        IsInspecting = true;
 
-        // unlock mouse so you can drag freely (optional)
+        // --- PLAY INSPECT SFX ONCE (NEW) ---
+        if (sfxSource != null && inspectClip != null)
+            sfxSource.PlayOneShot(inspectClip);
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        if (crosshair) crosshair.enabled = false;   // hide
+        if (crosshair) crosshair.enabled = false;
     }
 
     void HandleInspectRotate()
     {
         if (_current == null) return;
 
-        // Smoothly move the inspected object toward the anchor in front of the camera
         _current.transform.position = Vector3.Lerp(
             _current.transform.position,
             _inspectAnchor.position,
             Time.deltaTime * moveSpeed
         );
 
-        // --- Read mouse drag depending on input backend ---
         bool dragging;
         float mouseX, mouseY;
 
 #if ENABLE_INPUT_SYSTEM
-        // New Input System: delta is in pixels per frame
-        var mouse = UnityEngine.InputSystem.Mouse.current;
+        var mouse = Mouse.current;
         dragging = mouse != null && mouse.leftButton.isPressed;
         Vector2 delta = (mouse != null) ? mouse.delta.ReadValue() : Vector2.zero;
         mouseX = delta.x;
         mouseY = delta.y;
 #else
-    // Old Input Manager
-    dragging = Input.GetMouseButton(0);
-    mouseX = Input.GetAxis("Mouse X");
-    mouseY = Input.GetAxis("Mouse Y");
+        dragging = Input.GetMouseButton(0);
+        mouseX = Input.GetAxis("Mouse X");
+        mouseY = Input.GetAxis("Mouse Y");
 #endif
 
-        // Rotate while dragging: yaw around camera up, pitch around camera right
         if (dragging)
         {
             _current.transform.Rotate(playerCamera.transform.up, -mouseX * rotateSpeed, Space.World);
@@ -130,10 +147,8 @@ public class ObjectInspector : MonoBehaviour
         }
     }
 
-
     void HandleInspectEnd()
     {
-        // Right click or key to exit
         if (Input.GetMouseButtonDown(1) || Input.GetKeyDown(exitKey))
         {
             EndInspect();
@@ -142,19 +157,22 @@ public class ObjectInspector : MonoBehaviour
 
     void EndInspect()
     {
-        _current.transform.SetParent(_current.OriginalParent);
-        _current.transform.position = _current.OriginalPosition;
-        _current.transform.rotation = _current.OriginalRotation;
+        if (_current != null)
+        {
+            _current.transform.SetParent(_current.OriginalParent);
+            _current.transform.position = _current.OriginalPosition;
+            _current.transform.rotation = _current.OriginalRotation;
 
-        _current.OnInspectEnd();
+            _current.OnInspectEnd();
+        }
+
         _current = null;
         _isInspecting = false;
-        IsInspecting = false;                           // <- done inspecting
+        IsInspecting = false;
 
-        // re-lock for FPS look (optional; if your mouse-look handles this, skip)
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        if (crosshair) crosshair.enabled = true;    // show
+        if (crosshair) crosshair.enabled = true;
     }
 }
