@@ -1,7 +1,5 @@
 using UnityEngine;
 using TMPro;
-using System.Reflection;
-
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -11,49 +9,101 @@ public class InteractUse : MonoBehaviour
 {
     [Header("Refs")]
     public Camera cam;
-    public TMP_Text promptText;          // optional: small text under crosshair
+    public TMP_Text promptText;
 
     [Header("Ray")]
-    public LayerMask interactMask;       // set to Interactable only
+    public LayerMask interactMask;   // Interactable
     public float useDistance = 3.0f;
 
-    [Header("Input")]
-    public KeyCode useKey = KeyCode.F;   // press F to drink
+    [Header("Keys")]
+    public KeyCode inspectKey = KeyCode.E;
+    public KeyCode useKey = KeyCode.F;
 
-    void Reset() { cam = Camera.main; }
+    [Header("Inspector")]
+    public ObjectInspector objectInspector;
+
+    void Reset()
+    {
+        cam = Camera.main;
+    }
+
+    void Awake()
+    {
+        if (!cam) cam = Camera.main;
+        if (objectInspector == null)
+            objectInspector = FindObjectOfType<ObjectInspector>(true);
+
+        // Asegura que el texto esté activo
+        if (promptText) promptText.gameObject.SetActive(true);
+    }
 
     void Update()
     {
         if (!cam) cam = Camera.main;
 
-        // Don�t allow while inspecting (if you added that flag)
-        if (ObjectInspector_IsInspecting()) { SetPrompt(""); return; }
-
-        // Ray from the center of screen
-        Ray r = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-        WineGlass glass = null;
-
-        if (Physics.Raycast(r, out var hit, useDistance, interactMask, QueryTriggerInteraction.Collide))
-            glass = hit.collider.GetComponentInParent<WineGlass>();
-
-        if (glass)
+        if (ObjectInspector.IsInspecting)
         {
-            // Debug when hovering
-            Debug.Log("Hovering glass: " + glass.name);
+            SetPrompt("ESC - Exit");
+            return;
         }
 
-        if (glass && UsePressed())
+        // Ray al centro
+        Ray r = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+
+        if (!Physics.Raycast(r, out var hit, useDistance, interactMask, QueryTriggerInteraction.Collide))
         {
-            Debug.Log("Drank " + glass.name);
+            SetPrompt("");
+            return;
+        }
+
+        // 1) Detecta INSPECTABLE (para la E)
+        var inspectable = hit.collider.GetComponentInParent<InspectableObject>();
+
+        // 2) Detecta DRINKABLE (para la F)
+        var glass = hit.collider.GetComponentInParent<WineGlass>();
+
+        // Si no es ni inspectable ni drinkable, no mostramos nada
+        if (inspectable == null && glass == null)
+        {
+            SetPrompt("");
+            return;
+        }
+
+        // Construye el prompt según lo que haya
+        if (glass != null && inspectable != null)
+            SetPrompt("E - Inspect | F - Drink");
+        else if (inspectable != null)
+            SetPrompt("E - Inspect");
+        else
+            SetPrompt("F - Drink");
+
+        // INSPECT
+        if (InspectPressed() && inspectable != null)
+        {
+            if (objectInspector == null)
+            {
+                Debug.LogWarning("InteractUse: objectInspector no asignado. Arrástralo en el Inspector.");
+                return;
+            }
+
+            objectInspector.TryInspect(inspectable.gameObject);
+            return;
+        }
+
+        // DRINK
+        if (UsePressed() && glass != null)
+        {
             glass.Drink();
         }
+    }
 
-
-        // Prompt
-        SetPrompt(glass ? "F � Drink" : "");
-
-        // Use
-        if (glass && UsePressed()) glass.Drink();
+    bool InspectPressed()
+    {
+#if ENABLE_INPUT_SYSTEM
+        return Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+#else
+        return Input.GetKeyDown(inspectKey);
+#endif
     }
 
     bool UsePressed()
@@ -65,17 +115,15 @@ public class InteractUse : MonoBehaviour
 #endif
     }
 
-    void SetPrompt(string s) { if (promptText) promptText.text = s; }
-
-    bool ObjectInspector_IsInspecting()
+    void SetPrompt(string s)
     {
-        var t = System.Type.GetType("ObjectInspector");
-        if (t == null) return false;
-        var p = t.GetProperty("IsInspecting",
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-        if (p == null) return false;
-        var v = p.GetValue(null, null);
-        return v is bool b && b;
-    }
+        if (!promptText) return;
 
+        // Si el texto está invisible por alpha/material, esto lo fuerza
+        promptText.gameObject.SetActive(true);
+        promptText.alpha = 1f;
+
+        promptText.text = s;
+        promptText.ForceMeshUpdate();
+    }
 }
