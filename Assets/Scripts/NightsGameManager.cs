@@ -235,7 +235,6 @@ public class NightsGameManager : MonoBehaviour
     {
         _resolving = true;
         StopPanting();
-        ShowResult("Correct!");
 
         yield return ScreenShake(shakeDuration, shakeMagnitude);
 
