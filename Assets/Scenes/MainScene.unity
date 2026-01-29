@@ -4769,6 +4769,7 @@ GameObject:
   - component: {fileID: 1509242718}
   - component: {fileID: 1509242717}
   - component: {fileID: 1509242716}
+  - component: {fileID: 1509242719}
   m_Layer: 5
   m_Name: ButtonLeave
   m_TagString: Untagged
@@ -4793,7 +4794,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: -500, y: -200}
-  m_SizeDelta: {x: 350, y: 350}
+  m_SizeDelta: {x: 560, y: 580}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1509242716
 MonoBehaviour:
@@ -4889,6 +4890,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1509242714}
   m_CullTransparentMesh: 1
+--- !u!114 &1509242719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1509242714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 336f1c27b34164ff8ba8f99feac7f0f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonHoverZoom
+  hoverScale: 1.06
+  speed: 16
 --- !u!108 &1521553713 stripped
 Light:
   m_CorrespondingSourceObject: {fileID: 482331190242295635, guid: ce440da8f85a7bf48bddc758ce8762b8, type: 3}
@@ -5034,7 +5049,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -5344,6 +5359,7 @@ GameObject:
   - component: {fileID: 1637427968}
   - component: {fileID: 1637427967}
   - component: {fileID: 1637427966}
+  - component: {fileID: 1637427969}
   m_Layer: 5
   m_Name: ButtonStart
   m_TagString: Untagged
@@ -5367,8 +5383,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 500, y: -200}
-  m_SizeDelta: {x: 350, y: 350}
+  m_AnchoredPosition: {x: 500, y: -160}
+  m_SizeDelta: {x: 500, y: 500}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1637427966
 MonoBehaviour:
@@ -5396,8 +5412,8 @@ MonoBehaviour:
     m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
     m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
-    m_ColorMultiplier: 1
-    m_FadeDuration: 0.1
+    m_ColorMultiplier: 1.25
+    m_FadeDuration: 0.08
   m_SpriteState:
     m_HighlightedSprite: {fileID: 0}
     m_PressedSprite: {fileID: 0}
@@ -5464,6 +5480,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1637427964}
   m_CullTransparentMesh: 1
+--- !u!114 &1637427969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1637427964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 336f1c27b34164ff8ba8f99feac7f0f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonHoverZoom
+  hoverScale: 1.06
+  speed: 16
 --- !u!1 &1644647480
 GameObject:
   m_ObjectHideFlags: 0
